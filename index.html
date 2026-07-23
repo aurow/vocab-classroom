@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#2f6b4f">
+<link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="詞彙教室">
+<link rel="icon" href="data:,">
+<title>詞彙教室</title>
+<style>
+  :root {
+    color-scheme: light;
+    font-family: "Microsoft JhengHei", "Noto Sans TC", system-ui, sans-serif;
+    --ink: #2b221e;
+    --cream: #fff8e8;
+    --green: #1f5138;
+    --green-dark: #163927;
+    --gold: #f4b942;
+    --terracotta: #bd5536;
+    --focus: #ffdc65;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { width: 100%; min-height: 100%; margin: 0; }
+  body { background: #173725; color: var(--ink); overflow-x: hidden; }
+  button, input { font: inherit; }
+  button { cursor: pointer; }
+  button:focus-visible, input:focus-visible {
+    outline: 4px solid var(--focus);
+    outline-offset: 3px;
+  }
+  [hidden] { display: none !important; }
+
+  .welcome {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    overflow: hidden;
+    background:
+      linear-gradient(rgba(19, 42, 29, .22), rgba(19, 42, 29, .52)),
+      url("./assets/classroom-bg-v5.png") center / cover no-repeat;
+  }
+  .welcome::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, transparent 20%, rgba(20, 34, 24, .28));
+    pointer-events: none;
+  }
+  .welcome-card {
+    position: relative;
+    z-index: 1;
+    width: min(520px, 92vw);
+    padding: clamp(28px, 5vw, 48px);
+    border: 4px solid rgba(105, 67, 32, .86);
+    border-radius: 30px;
+    background: rgba(255, 248, 232, .94);
+    box-shadow: 0 24px 70px rgba(25, 21, 16, .38);
+    text-align: center;
+  }
+  .welcome-kicker {
+    margin: 0 0 8px;
+    color: #80522d;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: .18em;
+  }
+  .welcome h1 { margin: 0; color: var(--green-dark); font-size: clamp(36px, 7vw, 62px); }
+  .welcome-copy { margin: 14px auto 24px; color: #65513f; line-height: 1.7; }
+  .enter-button {
+    min-width: 210px;
+    min-height: 58px;
+    padding: 14px 28px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--terracotta);
+    box-shadow: 0 7px 0 #7f321f, 0 12px 24px rgba(94, 47, 29, .24);
+    color: white;
+    font-size: 21px;
+    font-weight: 900;
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .enter-button:hover { transform: translateY(-2px); }
+  .enter-button:active { transform: translateY(5px); box-shadow: 0 2px 0 #7f321f; }
+
+  .desktop-classroom {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    min-height: 620px;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .classroom-background {
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+  }
+  .board-panel {
+    position: absolute;
+    left: 22.2%;
+    top: 12.2%;
+    width: 56.7%;
+    height: 49.8%;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 10px;
+    padding: clamp(10px, 1.5vw, 24px);
+    color: #fffced;
+    text-shadow: 0 2px 2px rgba(0, 0, 0, .34);
+  }
+  .board-panel.has-image {
+    grid-template-columns: minmax(0, 1.35fr) minmax(150px, .65fr);
+  }
+  .board-heading {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+  .board-word {
+    margin: 0;
+    overflow: hidden;
+    color: #fff9db;
+    font-family: "Comic Sans MS", "Segoe Print", cursive;
+    font-size: clamp(30px, 4.4vw, 72px);
+    line-height: 1.05;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .speaker-button {
+    flex: 0 0 auto;
+    width: clamp(48px, 4.2vw, 66px);
+    height: clamp(48px, 4.2vw, 66px);
+    border: 2px solid rgba(255, 248, 218, .8);
+    border-radius: 50%;
+    background: rgba(246, 188, 63, .2);
+    color: #ffe68b;
+    font-size: clamp(23px, 2.2vw, 34px);
+    transition: transform .18s ease, background .18s ease;
+  }
+  .speaker-button:hover { transform: scale(1.08) rotate(-5deg); background: rgba(246, 188, 63, .36); }
+  .speaker-button.is-speaking { animation: speaker-pulse .8s ease-in-out infinite alternate; }
+  .speaker-button:disabled { cursor: not-allowed; opacity: .45; }
+  .board-meaning {
+    min-height: 0;
+    margin: 0;
+    padding: 2px 12px 8px 2px;
+    overflow-y: auto;
+    color: #f8f3df;
+    font-size: clamp(15px, 1.25vw, 21px);
+    line-height: 1.65;
+    white-space: pre-wrap;
+    scrollbar-color: rgba(255,255,255,.5) transparent;
+  }
+  .board-image-wrap {
+    min-height: 0;
+    align-self: stretch;
+    display: grid;
+    place-items: center;
+    padding: 6px;
+    border: 2px solid rgba(255, 248, 218, .62);
+    border-radius: 14px;
+    background: rgba(255, 250, 230, .1);
+  }
+  .board-image {
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 9px;
+    object-fit: contain;
+  }
+  .board-status { color: #fff0b3; font-size: clamp(17px, 1.5vw, 24px); }
+  .board-nav {
+    position: absolute;
+    right: clamp(12px, 1.3vw, 24px);
+    bottom: clamp(10px, 1.1vw, 20px);
+    z-index: 2;
+    display: flex;
+    gap: 7px;
+  }
+  .board-nav button {
+    width: clamp(44px, 3.7vw, 58px);
+    height: clamp(40px, 3.4vw, 54px);
+    border: 1px solid rgba(255, 252, 225, .3);
+    border-radius: 14px;
+    background: rgba(13, 65, 47, .48);
+    color: rgba(255, 249, 219, .82);
+    box-shadow: inset 0 0 12px rgba(255, 255, 255, .04);
+    font-size: clamp(24px, 2.2vw, 34px);
+    text-shadow: 0 2px 2px rgba(0, 0, 0, .38);
+    opacity: .78;
+    transition: opacity .18s ease, background .18s ease, transform .18s ease;
+  }
+  .board-nav button:hover:not(:disabled), .board-nav button:focus-visible { background: rgba(23, 86, 62, .72); opacity: 1; }
+  .board-nav button:disabled { cursor: not-allowed; opacity: .24; }
+  .board-nav[hidden] { display: none; }
+  .board-panel.is-practicing .board-meaning { padding-right: clamp(112px, 10vw, 146px); padding-bottom: clamp(52px, 4.5vw, 72px); }
+
+  .teacher-button {
+    position: absolute;
+    left: .7%;
+    bottom: -4.5%;
+    z-index: 3;
+    width: clamp(165px, 18vw, 310px);
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+  .teacher-button:hover .teacher, .teacher-button:focus-visible .teacher {
+    filter: drop-shadow(0 12px 10px rgba(40, 26, 16, .28)) drop-shadow(0 0 14px rgba(255, 220, 101, .55));
+  }
+  .teacher {
+    display: block;
+    width: 100%;
+    max-height: 67vh;
+    object-fit: contain;
+    object-position: bottom;
+    filter: drop-shadow(0 12px 10px rgba(40, 26, 16, .28));
+  }
+  .teacher-bubble {
+    position: absolute;
+    left: 1.8%;
+    top: 18%;
+    z-index: 4;
+    max-width: 250px;
+    margin: 0;
+    padding: 12px 16px;
+    border: 3px solid #8b5b2d;
+    border-radius: 18px 18px 18px 5px;
+    background: rgba(255, 250, 233, .95);
+    box-shadow: 0 8px 18px rgba(53, 37, 22, .22);
+    color: #4c3524;
+    font-weight: 800;
+    line-height: 1.45;
+  }
+  .bookcase-button {
+    position: absolute;
+    right: 2.6%;
+    top: 20.7%;
+    width: 16.2%;
+    height: 54.2%;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    transition: background .2s ease, box-shadow .2s ease;
+  }
+  .bookcase-button:hover, .bookcase-button:focus-visible {
+    background: rgba(255, 225, 103, .08);
+    box-shadow: 0 0 18px 5px rgba(255, 220, 101, .27), inset 0 0 24px rgba(255, 220, 101, .12);
+  }
+  .desk-paper-button {
+    position: absolute;
+    left: 22.1%;
+    top: 63.2%;
+    z-index: 4;
+    width: 11.7%;
+    height: 6.5%;
+    padding: 0;
+    border: 0;
+    clip-path: polygon(4% 7%, 88% 0, 100% 83%, 15% 100%);
+    background: transparent;
+    transform: rotate(1deg);
+    transition: background .18s ease, filter .18s ease, transform .18s ease;
+  }
+  .desk-paper-button:hover, .desk-paper-button:focus-visible {
+    background: rgba(255, 225, 103, .2);
+    filter: drop-shadow(0 0 8px rgba(255, 220, 101, .75));
+    transform: rotate(1deg) translateY(-2px);
+  }
+
+  .library-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(15, 29, 21, .68);
+    backdrop-filter: blur(5px);
+  }
+  .library {
+    width: min(760px, 94vw);
+    max-height: min(760px, 88vh);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 5px solid #754824;
+    border-radius: 26px;
+    background: #fff8e8;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, .42);
+  }
+  .library-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 20px;
+    background: #e9c889;
+  }
+  .library-header h2 { flex: 1; margin: 0; color: var(--green-dark); }
+  .library-close {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--green-dark);
+    color: white;
+    font-size: 24px;
+  }
+  .library-search {
+    margin: 16px 20px 10px;
+    padding: 13px 15px;
+    border: 2px solid #9d7a50;
+    border-radius: 12px;
+    background: white;
+    font-size: 17px;
+  }
+  .library-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    margin: 16px 20px 10px;
+  }
+  .library-controls select, .library-alphabet-start {
+    min-height: 48px;
+    padding: 9px 12px;
+    border: 2px solid #9d7a50;
+    border-radius: 10px;
+    background: white;
+    color: #38291e;
+    font-size: 16px;
+  }
+  .library-alphabet-start { background: var(--green); border-color: var(--green); color: white; font-weight: 800; }
+  .library-alphabet-start:disabled { cursor: not-allowed; opacity: .5; }
+  .library-alphabet-panel { margin: 0 20px 12px; padding: 14px; border: 2px solid #d5bd96; border-radius: 14px; background: white; }
+  .library-alphabet-panel p { margin: 0 0 10px; color: #705d4a; font-weight: 700; }
+  .alphabet-order { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; margin: 12px 0; color: #705d4a; font-weight: 700; }
+  .alphabet-order select { min-height: 42px; padding: 7px 10px; border: 2px solid #9d7a50; border-radius: 9px; background: #fffdf7; color: #38291e; font-size: 16px; }
+  .letter-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 7px; }
+  .letter-grid button { min-height: 38px; border: 1px solid #9d7a50; border-radius: 8px; background: #fff8e8; color: var(--green-dark); font-weight: 900; }
+  .letter-grid button.is-selected { background: var(--green); color: white; }
+  .alphabet-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+  .alphabet-stat { min-height: 58px; border: 0; border-radius: 10px; color: white; font-weight: 900; }
+  .alphabet-stat[data-proficiency=""] { background: #6b5b4b; }
+  .alphabet-stat[data-proficiency="mastered"] { background: #1e7d46; }
+  .alphabet-stat[data-proficiency="normal"] { background: #b7791f; }
+  .alphabet-stat[data-proficiency="unfamiliar"] { background: #b03a2e; }
+  .alphabet-stat:disabled { cursor: not-allowed; opacity: .42; }
+  .vocab-list {
+    min-height: 180px;
+    margin: 0;
+    padding: 6px 20px 22px;
+    overflow-y: auto;
+    list-style: none;
+  }
+  .vocab-list button {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    align-items: center;
+    margin-top: 9px;
+    padding: 14px 16px;
+    border: 1px solid #d5bd96;
+    border-radius: 12px;
+    background: white;
+    color: #38291e;
+    text-align: left;
+  }
+  .vocab-list button:hover { background: #f6eedc; border-color: #8f6237; }
+  .vocab-list strong { color: var(--green-dark); font-size: 18px; }
+  .vocab-meta { color: #7e6b58; font-size: 13px; }
+  .library-message { padding: 26px; color: #705d4a; text-align: center; }
+
+  .quiz {
+    width: min(760px, 94vw);
+    max-height: min(860px, 92vh);
+  }
+  .quiz-progress { color: var(--green-dark); font-weight: 800; }
+  .quiz-body { min-height: 240px; padding: 14px 20px 22px; overflow-y: auto; }
+  .quiz-setup {
+    max-width: 520px;
+    margin: 18px auto;
+    padding: 24px;
+    border: 2px solid #d5bd96;
+    border-radius: 16px;
+    background: white;
+    text-align: center;
+  }
+  .quiz-setup label {
+    display: block;
+    margin-bottom: 12px;
+    color: var(--green-dark);
+    font-size: 20px;
+    font-weight: 900;
+  }
+  .quiz-field { margin-bottom: 14px; text-align: left; }
+  .quiz-field label { margin-bottom: 6px; font-size: 16px; }
+  .quiz-source {
+    width: 100%;
+    min-height: 50px;
+    padding: 10px 12px;
+    border: 2px solid #9d7a50;
+    border-radius: 10px;
+    background: #fffdf7;
+    color: #38291e;
+    font-size: 17px;
+  }
+  .quiz-setup-note { min-height: 22px; margin: 10px 0 16px; color: #705d4a; }
+  .quiz-start {
+    width: 100%;
+    min-height: 54px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--green);
+    color: white;
+    font-size: 18px;
+    font-weight: 900;
+  }
+  .quiz-start:disabled { cursor: wait; opacity: .55; }
+  .quiz-word-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin: 8px 0 16px;
+  }
+  .quiz-word {
+    margin: 0;
+    min-width: 0;
+    color: var(--green-dark);
+    font-family: "Comic Sans MS", "Segoe Print", cursive;
+    font-size: clamp(34px, 8vw, 56px);
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+  .quiz-word-row .speaker-button {
+    border-color: #7a4b26;
+    background: rgba(244, 185, 66, .25);
+    color: #7a4b26;
+  }
+  .quiz-image {
+    display: block;
+    max-width: 100%;
+    max-height: 28vh;
+    margin: 0 auto 12px;
+    border-radius: 12px;
+    object-fit: contain;
+  }
+  .quiz-meaning { max-height: 48vh; margin: 0 0 16px; overflow-y: auto; color: #38291e; line-height: 1.65; white-space: pre-wrap; }
+  .md-h1 { font-weight: 800; font-size: 1.3em; margin: 12px 0 6px; }
+  .md-h2 { font-weight: 800; font-size: 1.18em; margin: 12px 0 6px; }
+  .md-h3 { font-weight: 700; font-size: 1.06em; margin: 10px 0 4px; }
+  .md-line { margin: 2px 0; }
+  .md-sub { margin: 1px 0 1px 1.4em; }
+  .md-gap { height: 8px; }
+  .md-hr { border: none; border-top: 1px solid rgba(73, 55, 41, 0.25); margin: 10px 0; }
+  .quiz-show {
+    width: 100%;
+    min-height: 54px;
+    border: 0;
+    border-radius: 12px;
+    background: var(--green);
+    color: white;
+    font-size: 18px;
+    font-weight: 800;
+  }
+  .quiz-reveal-actions { display: grid; grid-template-columns: minmax(0, 1fr) 64px; gap: 10px; }
+  .quiz-review-nav { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; }
+  .quiz-review-nav button:disabled { opacity: .4; cursor: not-allowed; }
+  .quiz-skip-before { min-height: 54px; border: 0; border-radius: 12px; background: #426b8a; color: white; font-size: 22px; font-weight: 800; }
+  .quiz-rate { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .rate-btn { min-height: 54px; border: 0; border-radius: 12px; color: white; font-size: 15px; font-weight: 800; }
+  .rate-btn:disabled { cursor: wait; opacity: .55; }
+  .rate-again { background: #b03a2e; }
+  .rate-good { background: #b7791f; }
+  .rate-easy { background: #1e7d46; }
+  .rate-skip { background: #426b8a; font-size: 22px; }
+  .quiz-status { min-height: 22px; margin: 10px 0 0; color: #8a3b2a; font-weight: 700; text-align: center; }
+  .memory-card {
+    width: min(460px, 92vw);
+    overflow: hidden;
+    border: 5px solid #754824;
+    border-radius: 24px;
+    background: #fff8e8;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, .42);
+  }
+  .memory-card-body { padding: 22px; text-align: center; }
+  .memory-kicker { margin: 0 0 5px; color: #98642f; font-size: 13px; font-weight: 900; letter-spacing: .12em; }
+  .memory-word {
+    margin: 0 0 14px;
+    color: var(--green-dark);
+    font-family: "Comic Sans MS", "Segoe Print", cursive;
+    font-size: clamp(38px, 8vw, 58px);
+    overflow-wrap: anywhere;
+  }
+  .memory-image { display: block; max-width: 100%; max-height: 28vh; margin: 0 auto 14px; border-radius: 12px; object-fit: contain; }
+  .memory-meaning { max-height: 28vh; margin: 0 0 16px; overflow-y: auto; color: #493729; line-height: 1.65; text-align: left; white-space: pre-wrap; }
+  .memory-source-label { display: block; margin: 0 0 6px; color: #705d4a; font-weight: 700; }
+  .memory-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .memory-actions button { min-height: 50px; border: 0; border-radius: 12px; color: white; font-weight: 900; }
+  .memory-show { background: var(--green); }
+  .memory-next { background: var(--terracotta); }
+  .memory-message { min-height: 120px; display: grid; place-items: center; color: #705d4a; line-height: 1.6; }
+
+  .mobile-classroom {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px 16px 96px;
+    background:
+      linear-gradient(rgba(19, 42, 29, .35), rgba(19, 42, 29, .6)),
+      url("./assets/classroom-bg-v5.png") center / cover fixed;
+  }
+  .mobile-card {
+    width: 100%;
+    border: 3px solid #7a4b26;
+    border-radius: 20px;
+    background: rgba(255, 250, 237, .95);
+    box-shadow: 0 10px 24px rgba(55, 37, 22, .25);
+    color: var(--ink);
+    text-align: left;
+  }
+  .mobile-board { padding: 16px 18px; }
+  .mobile-board .board-heading { display: flex; align-items: center; gap: 12px; }
+  .mobile-board-word {
+    flex: 1;
+    margin: 0;
+    overflow: hidden;
+    color: var(--green-dark);
+    font-family: "Comic Sans MS", "Segoe Print", cursive;
+    font-size: clamp(28px, 9vw, 44px);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .mobile-board .speaker-button {
+    border-color: #7a4b26;
+    background: rgba(244, 185, 66, .25);
+    color: #7a4b26;
+  }
+  .mobile-row-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    font-size: 20px;
+    font-weight: 900;
+    color: var(--green-dark);
+  }
+  .mobile-row-card img {
+    width: 84px;
+    height: 84px;
+    object-fit: contain;
+    object-position: bottom;
+  }
+  .mobile-bookcase-icon { font-size: 44px; line-height: 84px; }
+  .upload-fab {
+    position: fixed;
+    right: 18px;
+    bottom: 18px;
+    z-index: 15;
+    min-height: 56px;
+    padding: 14px 20px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--terracotta);
+    box-shadow: 0 6px 0 #7f321f, 0 10px 22px rgba(94, 47, 29, .3);
+    color: white;
+    font-size: 17px;
+    font-weight: 900;
+  }
+  .mobile-upload {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    overflow-y: auto;
+    padding: 22px 16px 38px;
+    background:
+      linear-gradient(rgba(242, 230, 204, .93), rgba(242, 230, 204, .97)),
+      url("./assets/classroom-bg-v5.png") center / cover fixed;
+  }
+  .upload-card {
+    position: relative;
+    width: min(520px, 100%);
+    margin: 0 auto;
+    padding: 22px;
+    border: 3px solid #7a4b26;
+    border-radius: 24px;
+    background: rgba(255, 250, 237, .97);
+    box-shadow: 0 14px 34px rgba(55, 37, 22, .2);
+  }
+  .upload-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--green-dark);
+    color: white;
+    font-size: 20px;
+  }
+  .upload-card h1 { margin: 0 0 4px; color: var(--green-dark); font-size: 27px; }
+  .upload-subtitle { margin: 0 0 20px; color: #745f4d; }
+  .upload-card label { display: block; margin: 16px 0 7px; font-weight: 800; }
+  .upload-card input[type=text] {
+    width: 100%;
+    min-height: 50px;
+    padding: 12px;
+    border: 2px solid #aa8c67;
+    border-radius: 10px;
+    background: white;
+    font-size: 16px;
+  }
+  .pick-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pick-btn, .upload-button {
+    min-height: 54px;
+    padding: 12px 8px;
+    border: 0;
+    border-radius: 12px;
+    color: white;
+    font-size: 16px;
+    font-weight: 800;
+  }
+  .pick-btn { background: #4a3b2c; }
+  .upload-button { width: 100%; margin-top: 22px; background: var(--terracotta); font-size: 18px; }
+  .upload-card button:disabled { cursor: wait; opacity: .55; }
+  #preview { display: none; width: 100%; max-height: 48vh; margin-top: 12px; border-radius: 12px; object-fit: contain; }
+  #file-name { min-height: 20px; margin-top: 9px; color: #6b5b4a; font-size: 13px; overflow-wrap: anywhere; }
+  #msg { display: none; margin-top: 16px; padding: 12px; border-radius: 10px; font-weight: 700; }
+  .ok { background: #d4edda; color: #155724; }
+  .err { background: #f8d7da; color: #721c24; }
+  #counter { margin-top: 20px; color: #6b5b4a; font-size: 14px; text-align: center; }
+
+  @keyframes speaker-pulse {
+    from { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 225, 112, .1); }
+    to { transform: scale(1.12); box-shadow: 0 0 0 10px rgba(255, 225, 112, .2); }
+  }
+
+  @media (max-width: 767px) {
+    .desktop-classroom { display: none; }
+    .library-controls { grid-template-columns: 1fr; }
+    .letter-grid { grid-template-columns: repeat(6, 1fr); }
+    .alphabet-stats { grid-template-columns: repeat(2, 1fr); }
+    .welcome {
+      background-position: 67% center;
+    }
+    .welcome-card { padding: 30px 22px; }
+  }
+
+  @media (min-width: 768px) {
+    .mobile-classroom, .upload-fab, .mobile-upload { display: none; }
+  }
+
+  @media (max-width: 1080px) and (min-width: 768px) {
+    .teacher-bubble { display: none; }
+    .board-meaning { font-size: 14px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      scroll-behavior: auto !important;
+      animation-duration: .01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: .01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+  <section id="welcome" class="welcome" aria-labelledby="welcome-title">
+    <div class="welcome-card">
+      <p class="welcome-kicker">VOCABULARY CLASSROOM</p>
+      <h1 id="welcome-title">詞彙教室</h1>
+      <p class="welcome-copy">老師已經準備好了，一起把今天的新單字放進腦袋吧！</p>
+      <button id="enter-classroom" class="enter-button" type="button">進入教室</button>
+    </div>
+  </section>
+
+  <main id="app" hidden>
+    <section class="desktop-classroom" aria-label="單字學習教室">
+      <img class="classroom-background" src="./assets/classroom-bg-v5.png" alt="">
+
+      <section id="board-panel" class="board-panel" aria-live="polite" aria-busy="true">
+        <div class="board-heading">
+          <h1 id="board-word" class="board-word">載入中…</h1>
+          <button id="speaker" class="speaker-button" type="button" aria-label="朗讀目前單字" title="朗讀目前單字">🔊</button>
+        </div>
+        <div id="board-meaning" class="board-meaning board-status">正在翻開最新的單字…</div>
+        <div id="board-image-wrap" class="board-image-wrap" hidden>
+          <img id="board-image" class="board-image" alt="">
+        </div>
+        <div id="board-nav" class="board-nav" hidden>
+          <button id="board-prev" type="button" aria-label="上一個複習單字" title="上一個複習單字">←</button>
+          <button id="board-next" type="button" aria-label="下一個複習單字" title="下一個複習單字">→</button>
+        </div>
+      </section>
+
+      <button id="teacher-btn" class="teacher-button" type="button" aria-haspopup="dialog" aria-label="請老師出題">
+        <img class="teacher" src="./assets/teacher-v2.png" alt="">
+      </button>
+      <p class="teacher-bubble">點我開始今天的複習！</p>
+
+      <button id="open-library" class="bookcase-button" type="button" aria-haspopup="dialog" aria-label="單字書櫃"></button>
+      <button id="open-memory-card" class="desk-paper-button" type="button" aria-haspopup="dialog" aria-label="從考卷抽一張曾經不熟悉的單字卡" title="抽一張不熟單字"></button>
+    </section>
+
+    <section class="mobile-classroom" aria-label="單字學習教室">
+      <div class="mobile-card mobile-board">
+        <div class="board-heading">
+          <h2 id="m-board-word" class="mobile-board-word">載入中…</h2>
+          <button id="m-speaker" class="speaker-button" type="button" aria-label="朗讀目前單字" title="朗讀目前單字">🔊</button>
+        </div>
+      </div>
+      <button id="m-teacher" class="mobile-card mobile-row-card" type="button" aria-haspopup="dialog">
+        <img src="./assets/teacher-v2.png" alt="">
+        <span>👩‍🏫 開始出題</span>
+      </button>
+      <button id="m-bookcase" class="mobile-card mobile-row-card" type="button" aria-haspopup="dialog">
+        <span class="mobile-bookcase-icon">📚</span>
+        <span>單字書櫃</span>
+      </button>
+    </section>
+  </main>
+
+  <div id="library-backdrop" class="library-backdrop" hidden>
+    <section id="library" class="library" role="dialog" aria-modal="true" aria-labelledby="library-title">
+      <header class="library-header">
+        <h2 id="library-title">📚 單字書櫃</h2>
+        <button id="close-library" class="library-close" type="button" aria-label="關閉單字書櫃">×</button>
+      </header>
+      <div class="backup-bar">
+        <button id="backup-export" type="button">⬇️ 匯出備份</button>
+        <button id="backup-import" type="button">⬆️ 匯入備份</button>
+        <input id="backup-file" type="file" accept="application/json" hidden>
+      </div>
+      <div class="library-controls">
+        <label for="library-source" hidden>選擇單字分類</label>
+        <select id="library-source">
+          <option value="">請選擇分類</option>
+        </select>
+        <button id="library-alphabet-start" class="library-alphabet-start" type="button" disabled>🔤 按開頭字母複習</button>
+        <button id="library-random-start" class="library-alphabet-start" type="button" disabled>🎲 分類隨機複習</button>
+      </div>
+      <div id="library-alphabet-panel" class="library-alphabet-panel" hidden>
+        <p>選擇開頭字母與出現順序，再從統計數字開始複習：</p>
+        <div id="library-letter-grid" class="letter-grid" aria-label="選擇開頭字母"></div>
+        <label class="alphabet-order" for="library-alphabet-order">
+          <span>字卡順序</span>
+          <select id="library-alphabet-order">
+            <option value="alphabetical">依字母順序</option>
+            <option value="random">隨機順序</option>
+          </select>
+        </label>
+        <div id="library-alphabet-stats" class="alphabet-stats" aria-live="polite" hidden></div>
+      </div>
+      <div id="library-random-panel" class="library-alphabet-panel" hidden>
+        <p>選擇要複習的熟練度，整個分類隨機出卡：</p>
+        <div id="library-random-stats" class="alphabet-stats" aria-live="polite" hidden></div>
+      </div>
+      <label for="library-search" hidden>搜尋英文單字</label>
+      <input id="library-search" class="library-search" type="search" placeholder="搜尋英文單字…" autocomplete="off">
+      <ul id="vocab-list" class="vocab-list"></ul>
+    </section>
+  </div>
+
+  <div id="quiz-backdrop" class="library-backdrop" hidden>
+    <section class="library quiz" role="dialog" aria-modal="true" aria-labelledby="quiz-title">
+      <header class="library-header">
+        <h2 id="quiz-title">🧠 老師出題</h2>
+        <span id="quiz-progress" class="quiz-progress" aria-live="polite"></span>
+        <button id="close-quiz" class="library-close" type="button" aria-label="關閉出題">×</button>
+      </header>
+      <div class="quiz-body">
+        <div id="quiz-setup" class="quiz-setup">
+          <div class="quiz-field">
+            <label for="quiz-source">這次要從哪裡出題？</label>
+            <select id="quiz-source" class="quiz-source">
+              <option value="">所有字庫</option>
+            </select>
+          </div>
+          <div class="quiz-field">
+            <label for="quiz-mode">出題方式</label>
+            <select id="quiz-mode" class="quiz-source">
+              <option value="weighted">🎲 隨機（不熟會再次出現）</option>
+              <option value="letter">🔤 按開頭字母隨機</option>
+              <option value="proficiency">🎯 按熟練度隨機</option>
+            </select>
+          </div>
+          <div id="quiz-letter-field" class="quiz-field" hidden>
+            <label for="quiz-letter">選擇開頭字母</label>
+            <select id="quiz-letter" class="quiz-source"></select>
+          </div>
+          <div id="quiz-proficiency-field" class="quiz-field" hidden>
+            <label for="quiz-proficiency">選擇熟練度</label>
+            <select id="quiz-proficiency" class="quiz-source">
+              <option value="unfamiliar">🔴 不熟</option>
+              <option value="normal">🟡 普通</option>
+              <option value="mastered">🟢 精熟</option>
+            </select>
+          </div>
+          <p id="quiz-setup-note" class="quiz-setup-note" role="status" aria-live="polite">正在讀取分類…</p>
+          <button id="quiz-start" class="quiz-start" type="button">開始出題</button>
+        </div>
+        <p id="quiz-message" class="library-message" hidden></p>
+        <div id="quiz-card" hidden>
+          <div class="quiz-word-row">
+            <h3 id="quiz-word" class="quiz-word"></h3>
+            <button id="quiz-speaker" class="speaker-button" type="button" aria-label="再唸一次這個單字" title="再唸一次這個單字">👄</button>
+          </div>
+          <div id="quiz-answer" hidden>
+            <img id="quiz-image" class="quiz-image" alt="" hidden>
+            <div id="quiz-meaning" class="quiz-meaning"></div>
+          </div>
+          <div id="quiz-reveal-actions" class="quiz-reveal-actions">
+            <button id="quiz-show" class="quiz-show" type="button">👀 顯示答案</button>
+            <button id="quiz-skip-before" class="quiz-skip-before" type="button" aria-label="不看答案，跳過這個單字" title="不看答案，跳過這個單字">➡️</button>
+          </div>
+          <div id="quiz-rate" class="quiz-rate" hidden>
+            <button id="rate-again" class="rate-btn rate-again" type="button">🔴 不熟</button>
+            <button id="rate-good" class="rate-btn rate-good" type="button">🟡 普通</button>
+            <button id="rate-easy" class="rate-btn rate-easy" type="button">🟢 精熟</button>
+            <button id="quiz-skip" class="rate-btn rate-skip" type="button" aria-label="跳過這個單字" title="跳過這個單字">➡️</button>
+          </div>
+          <div id="quiz-review-nav" class="quiz-review-nav" hidden>
+            <button id="quiz-review-prev" class="quiz-skip-before" type="button" aria-label="上一個單字" title="上一個單字">⬅️</button>
+            <button id="quiz-review-next" class="quiz-show" type="button" aria-label="下一個單字" title="下一個單字">下一個 ➡️</button>
+          </div>
+          <p id="quiz-status" class="quiz-status" role="status" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div id="memory-backdrop" class="library-backdrop" hidden>
+    <section class="memory-card" role="dialog" aria-modal="true" aria-labelledby="memory-title">
+      <header class="library-header">
+        <h2 id="memory-title">📝 不熟單字小考卷</h2>
+        <button id="close-memory" class="library-close" type="button" aria-label="關閉不熟單字卡">×</button>
+      </header>
+      <div class="memory-card-body">
+        <label for="memory-source" class="memory-source-label">複習哪個分類？</label>
+        <select id="memory-source" class="quiz-source"></select>
+        <div id="memory-message" class="memory-message">正在抽一張小卡…</div>
+        <div id="memory-content" hidden>
+          <p class="memory-kicker">曾經勾選「不熟」</p>
+          <h3 id="memory-word" class="memory-word"></h3>
+          <div id="memory-answer" hidden>
+            <img id="memory-image" class="memory-image" alt="" hidden>
+            <div id="memory-meaning" class="memory-meaning"></div>
+          </div>
+          <div class="memory-actions">
+            <button id="memory-show" class="memory-show" type="button">翻開答案</button>
+            <button id="memory-next" class="memory-next" type="button">再抽一張</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
