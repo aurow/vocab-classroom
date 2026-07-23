@@ -61,11 +61,20 @@ export async function init() {
   if (navigator.storage && navigator.storage.persist) {
     try { await navigator.storage.persist(); } catch (_) { /* best effort */ }
   }
+  if (!(await getMeta('firstUseAt'))) await setMeta('firstUseAt', todayStr());
 }
 
 function card(r) { return { id: r.id, word: r.word, meaning: r.meaning, source: r.source }; }
 function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 function all() { return [..._cache.values()]; }
+
+async function getMeta(key) {
+  const row = await reqP(tx(META, 'readonly').get(key));
+  return row ? row.value : undefined;
+}
+async function setMeta(key, value) {
+  await reqP(tx(META, 'readwrite').put({ key, value }));
+}
 
 export async function listSources() {
   return [...new Set(all().map((r) => r.source))];
@@ -149,7 +158,15 @@ export async function review(id, rating) {
 export async function exportData() {
   const items = all();
   const payload = { version: 1, exportedAt: todayStr(), items };
+  await setMeta('lastBackupAt', todayStr());
   return new Blob([JSON.stringify(payload)], { type: 'application/json' });
+}
+
+export async function backupReminder() {
+  const ref = (await getMeta('lastBackupAt')) || (await getMeta('firstUseAt'));
+  if (!ref) return { show: false, days: 0 };
+  const days = Math.floor((Date.parse(todayStr()) - Date.parse(ref)) / 86400000);
+  return { show: days >= 7, days };
 }
 
 export async function importData(jsonText) {

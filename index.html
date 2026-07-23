@@ -679,9 +679,28 @@
       transition-duration: .01ms !important;
     }
   }
+  .backup-reminder {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    background: #f4b942; color: #4c3524; font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .2);
+  }
+  .backup-reminder[hidden] { display: none !important; }
+  .backup-reminder span { flex: 1; min-width: 0; font-size: 15px; line-height: 1.4; }
+  .backup-reminder button {
+    flex: 0 0 auto; border: 0; border-radius: 8px;
+    padding: 8px 12px; background: #1f5138; color: #fff; font-weight: 800;
+  }
+  .backup-reminder .br-dismiss { background: transparent; color: #4c3524; padding: 8px 10px; font-size: 18px; }
 </style>
 </head>
 <body>
+  <div id="backup-reminder" class="backup-reminder" hidden role="status">
+    <span id="backup-reminder-text"></span>
+    <button id="backup-reminder-export" type="button">⬇️ 立即備份</button>
+    <button id="backup-reminder-dismiss" class="br-dismiss" type="button" aria-label="稍後再說">✕</button>
+  </div>
   <section id="welcome" class="welcome" aria-labelledby="welcome-title">
     <div class="welcome-card">
       <p class="welcome-kicker">VOCABULARY CLASSROOM</p>

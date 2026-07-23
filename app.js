@@ -956,7 +956,7 @@ async function main() {
     }
   });
 
-  document.getElementById('backup-export').addEventListener('click', async () => {
+  async function doExport() {
     const blob = await store.exportData();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -964,6 +964,13 @@ async function main() {
     a.download = `vocab-backup-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    const rem = document.getElementById('backup-reminder');
+    if (rem) rem.hidden = true;
+  }
+  document.getElementById('backup-export').addEventListener('click', doExport);
+  document.getElementById('backup-reminder-export').addEventListener('click', doExport);
+  document.getElementById('backup-reminder-dismiss').addEventListener('click', () => {
+    document.getElementById('backup-reminder').hidden = true;
   });
   document.getElementById('backup-import').addEventListener('click', () => document.getElementById('backup-file').click());
   document.getElementById('backup-file').addEventListener('change', async (e) => {
@@ -984,6 +991,15 @@ async function main() {
 
   window.__ready = true;
   window.__store = store;
+
+  try {
+    const rem = await store.backupReminder();
+    if (rem.show) {
+      document.getElementById('backup-reminder-text').textContent =
+        `已經 ${rem.days} 天沒備份了，建議匯出一份存到雲端，換手機或被清掉時才救得回。`;
+      document.getElementById('backup-reminder').hidden = false;
+    }
+  } catch (_) { /* non-critical */ }
 
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js');
