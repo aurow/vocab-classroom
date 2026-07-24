@@ -958,13 +958,29 @@ async function main() {
 
   async function doExport() {
     const blob = await store.exportData();
+    const fname = `vocab-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    const rem = document.getElementById('backup-reminder');
+    // Prefer the phone's native share sheet (save to iCloud/Drive/send to self).
+    try {
+      const file = new File([blob], fname, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: '詞彙教室 備份' });
+        await store.markBackedUp();
+        if (rem) rem.hidden = true;
+        return;
+      }
+    } catch (err) {
+      if (err && err.name === 'AbortError') return; // user cancelled the share sheet
+      // otherwise fall through to download
+    }
+    // Fallback: download the file.
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `vocab-backup-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = fname;
     a.click();
     URL.revokeObjectURL(url);
-    const rem = document.getElementById('backup-reminder');
+    await store.markBackedUp();
     if (rem) rem.hidden = true;
   }
   document.getElementById('backup-export').addEventListener('click', doExport);

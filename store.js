@@ -158,8 +158,11 @@ export async function review(id, rating) {
 export async function exportData() {
   const items = all();
   const payload = { version: 1, exportedAt: todayStr(), items };
-  await setMeta('lastBackupAt', todayStr());
   return new Blob([JSON.stringify(payload)], { type: 'application/json' });
+}
+
+export async function markBackedUp() {
+  await setMeta('lastBackupAt', todayStr());
 }
 
 export async function backupReminder() {
