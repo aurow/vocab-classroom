@@ -469,6 +469,7 @@ async function main() {
   function resetQuizScroll() {
     quizBody.scrollTop = 0;
     quizMeaning.scrollTop = 0;
+    quizAnswer.scrollTop = 0;
   }
 
   function renderAlphabetStats(counts, container, onStart) {
@@ -668,10 +669,10 @@ async function main() {
     const item = quizQueue[quizIndex];
     if (!item) return;
     renderQuizAnswerContent(item);
-    resetQuizScroll();
     quizAnswer.hidden = false;
     quizRevealActions.hidden = true;
     quizRate.hidden = false;
+    resetQuizScroll();
   }
 
   async function rateQuiz(rating) {
