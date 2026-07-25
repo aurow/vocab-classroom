@@ -93,12 +93,6 @@ export async function getById(id) {
   return r ? { ...card(r), interval: r.interval, next_review_date: r.next_review_date, proficiency: r.proficiency } : null;
 }
 
-export async function getLatest() {
-  const rows = all();
-  if (!rows.length) return null;
-  return card(rows.reduce((a, b) => (b.id > a.id ? b : a)));
-}
-
 function matchLetter(r, letter) {
   return !letter || firstLetter(r.word) === letter.toUpperCase();
 }

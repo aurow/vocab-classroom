@@ -24,6 +24,7 @@ async function main() {
   const boardPrevBtn = document.getElementById('board-prev');
   const boardNextBtn = document.getElementById('board-next');
   const speakerBtn = document.getElementById('speaker');
+  const mBoardCard = document.getElementById('m-board-card');
   const mBoardWord = document.getElementById('m-board-word');
   const mSpeakerBtn = document.getElementById('m-speaker');
 
@@ -44,7 +45,6 @@ async function main() {
   const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
   let currentWord = '';
-  let latestLoaded = false;
   let searchTimer = null;
   let libraryReturnFocus = null;
   let libraryLetter = '';
@@ -172,7 +172,6 @@ async function main() {
     markEnteredThisTab();
     welcomeEl.hidden = true;
     appEl.hidden = false;
-    if (!latestLoaded) loadLatestWord();
   }
 
   enterBtn.addEventListener('click', showApp);
@@ -187,8 +186,10 @@ async function main() {
     boardPanel.classList.remove('has-image');
     boardPanel.setAttribute('aria-busy', 'false');
     speakerBtn.disabled = true;
+    speakerBtn.hidden = !title;
     mBoardWord.textContent = title;
     mSpeakerBtn.disabled = true;
+    mBoardCard.hidden = !title;
   }
 
   function renderWord(item) {
@@ -204,8 +205,10 @@ async function main() {
     boardMeaning.classList.remove('board-status');
     boardPanel.setAttribute('aria-busy', 'false');
     speakerBtn.disabled = !currentWord || !('speechSynthesis' in window);
+    speakerBtn.hidden = false;
     mBoardWord.textContent = currentWord || '未命名單字';
     mSpeakerBtn.disabled = !currentWord || !('speechSynthesis' in window);
+    mBoardCard.hidden = false;
 
     if (item.image_url) {
       boardImage.src = item.image_url;
@@ -272,19 +275,6 @@ async function main() {
     }
     renderBoardPracticeCard();
   });
-
-  async function loadLatestWord() {
-    stopBoardPractice();
-    latestLoaded = true;
-    boardPanel.setAttribute('aria-busy', 'true');
-    try {
-      const item = await store.getLatest();
-      renderWord(item);
-    } catch (error) {
-      latestLoaded = false;
-      setBoardMessage('暫時拿不到單字', '讀取時發生問題，請重新整理再試一次。');
-    }
-  }
 
   async function loadWord(vocabId) {
     stopBoardPractice();
